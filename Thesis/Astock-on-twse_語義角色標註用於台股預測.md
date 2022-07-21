@@ -1,12 +1,10 @@
 # 語義角色標註用於台股預測
 
-https://hackmd.io/@GFIdYvfqTVq3NkpW4eRBig/S1IvXP9sc
-
 ## Context
 
 - 不同資料集版本和label計算方式的模型成效
 - 根據預測結果的回測成效
-- 資料準備流程自動化
+- 資料準備流程
 - 解決過的技術問題整理
 
 ---
@@ -14,17 +12,55 @@ https://hackmd.io/@GFIdYvfqTVq3NkpW4eRBig/S1IvXP9sc
 ## SRLP 模型成效
 > based on 不同資料集版本和label計算方式
 
-- 預測錯誤當天有數則新聞，本來個股是上漲但受到大盤下跌新聞影響而預測錯誤 => 改為新聞標題若無直接提及公司或相關產業、概念股的訊息才使用其他新聞，否則當天該個股要濾掉無提及該公司名稱的新聞標題
-  - stock id name 比對(直接用goodinfo上的名稱)
-  - 文本產業／概念股歸類(直接用goodinfo上的名稱)
-- 發現預測錯誤的 labels 其 pct_chg_next 的絕對值較小且相對集中
-  - labels 的切分用固定級距 先不要用比例 因為會受到不同時間區段的影響
-  - 看是否能抓到比較大的價格波動為主
+![](https://i.imgur.com/VrzPNXV.png)
+
+[record sheet](https://docs.google.com/spreadsheets/d/1IdpW4Q39KzHmL4NZcxo8kTxTfefgriiTSmrBXWN_swI/edit?pli=1#gid=928735354)
+
+> ### 資料版本說明
+
+#### **新聞**
+- 論文原先使用: A股企業公告
+
+![](https://i.imgur.com/pZ2wxOU.png)
+
+- `tw-stock-news V1`: Goodinfo 台股新聞（為了先能夠快速取得每支股票足夠多的相關新聞，如果是接 KGBuilder output 不是每篇新聞會提及公司，會比較費時）
+
+- `tw-stock-news V2`: Goodinfo 台股新聞 **將沒有提及任何公司或產業關鍵詞的新聞標題移除**
+    - 觀察預測錯誤當天有數則新聞，本來個股是上漲但受到大盤下跌新聞影響而預測錯誤 
+        => 改為新聞標題若無直接提及公司或相關產業、概念股的訊息才使用其他新聞，否則當天該個股要濾掉無提及該公司名稱的新聞標題
+        - stock id name 比對、文本產業／概念股歸類 （先直接使用goodinfo上的類股表當作關鍵字歸類）
+
+#### **訓練目標 label**
+- 以 stock return rate 衡量每篇個股新聞的影響、標註為 $r$。最後將所有新聞用 $r$ 排行、以級距分成 3 類，用意是為了找到最強的股市變化信號。根據專家建議和作者做的一些實驗，最後將設定參數 a,b,c,d 為
+
+  ![](https://i.imgur.com/gkonRS1.png)
+
+- $a=20; b=40; c=60; d=20$
+- 回報率 $r = \frac{close - close_{pre}}{close}$
+
 
 ## 回測成效
 > based on SRLP 模型預測結果
 
-## 資料準備流程自動化
+`(to-be-update)`
+
+
+## 資料準備流程
+
+![](https://i.imgur.com/Po72SV0.pngs)
+
+目前先使用 0050 的成分股
+
+1. 取得股價
+2. 計算技術指標
+3. 處理新聞資料欄位、透過 LTP 模型推測出語意角色標註結果（新聞->事件）
+4. 將新聞依據開收盤時間與股價資料合併
+
+![](https://i.imgur.com/6eEIyq2.png)
+
+![](https://i.imgur.com/pJgVAha.png)
+
+---
 
 ## 解決過的技術問題整理
 
