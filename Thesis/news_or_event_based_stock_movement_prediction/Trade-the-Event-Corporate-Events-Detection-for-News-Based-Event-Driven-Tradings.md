@@ -1,5 +1,10 @@
 # Trade the Event: Corporate Events Detection for News-Based Event-Driven Tradings
 
+- Authors: Zhihan Zhou, Liqian Ma, Han Liu. 
+- Publish Year Month: 2021.05
+- Thesis: https://arxiv.org/pdf/2105.12825.pdf
+- Github: https://github.com/Zhihan1996/TradeTheEvent
+
 ## (Self Comment)
 - 需要預先做好事件分類的標注資料集，可以找看看中文事件抽取資料集有標註的來用
 - 這篇亮點是在一個新的 Bi-level 金融事件分類模型、自己寫的回測、以事件分類的維度分析漲跌和勝率進而對交易決策做出解釋
@@ -90,10 +95,11 @@
 - 每篇文章以 `[CLS]` 連接
 - 以 $h_{cls}$ (`[CLS]`'s last hidden state) 來表示整篇文章
 - $h_{i}$ 則是表示 token $i$ 
+- 整個模型的 loss 是以下 Low-level detector 及 High-level detector 的 loss 加總，使模型同時優化這兩種 detectors
 
 > ### Bi-level Event Detector > Low-level detector
 - a sequence labeling problem
-- Label set : 包含 $k$ 個事先標注好的事件和特殊 label $O$ (代表無事件)
+- Label set : 包含 $k$ 個事先標注好的事件和特殊 label $O$ (代表無事件) 共 K + 1 項
   - $L = \{e_{1}, e_{2}, ..., e_{k}, O\}$ 
 - 將新聞文本表示為一連串 tokens $x$
   - $x = (x_{1}, x_{2}, ..., x_{n})$
@@ -103,10 +109,17 @@
 - 假設有一 $x$ 的子序列（序列中其中一段） $x'$ 代表了事件 $i$ ，則 label 序列 $y$ 中的第 t ~ t+s 項 $\{y_{j}\}_{j=t}^{t+s}$ 會存入 “$e_{i}$”
   - $x' = (x_{t}, x_{t+1}, ..., x_{t+s})$
 - 其餘無事件的字都標為 $O$
+- 對每個 token 向量跑 **multi-class classification**，算出 K+1 項機率值組成的陣列，其中機率值最高的所在位置即為該種事件種類
+  - 這個機率陣列也會輸入到 high-level detector
+- 一篇新聞在 Low-level detector 的 Loss 為 **所有 token's `categorical_crossentropy` 的平均**
 
 > ### Bi-level Event Detector > High-level detector
 - 基於 `low-level detector` 的預測標注，結合整篇文章的語意理解，預測各個事件的存在機率；如果存在機率大於設定好的 threshold 代表事件 $i$ 存在。
 - 如果機率超過門檻表事件存在，則立即計算與事件相關的股票的買賣點
+- 將 Low-level detector token 事件機率陣列和整篇文章的 embedding concat 起來，計算各項事件在文章中存在的機率
+- 視為 **multi-label classification**（也等於視為 K 個 binary classification 任務，第 K 種事件存在於新聞中的機率）
+- 一篇新聞在 High-level detector 的 Loss 為 **所有事件種類之 `binary_crossentropy` 總和**
+- 最終輸出長度為 K 的陣列代表該篇新聞是否存在第幾種事件，若全為 0 則代表不存在任何事件
 
 ### Trading Strategy
 
@@ -203,4 +216,66 @@ Policies
 
 ## Experiments
 
+### 不同事件種類的交易操作
 
+- 不交易: Dividend
+- Short (賣出): Reverse Stock Split, Dividend Cut
+- Long (買入): 其餘 8 種
+
+### 檢視交易成效的指標
+
+`Buy`
+
+$return = \frac{P_{sell} - P_{buy}}{P_{buy}}$%
+
+`Sell`
+
+$return = \frac{P_{sell} - P_{buy}}{P_{sell}}$%
+
+- $P$ : 股價
+- $return$ > 0% : win
+  - winning rate = win transactions / total transactions
+- $return$ >= 1% : big win
+  - big win rate = big win transactions / total transactions
+
+`Market Return` : return of buying S&P500 index ETF for $10000 from 2020/03/01, and sell all on 2021/05/06
+
+- Start : $10000 
+- Trading Amount
+  - $2000 when each trading signal occurs
+  - 若剩餘資金 < $2000，使用剩餘資金的 20%
+- Excess return : model's **total returns - market return** 
+- Commission fee: 0.3% per transaction
+
+`Trade-At-End` 
+- Stop Loss : 20%
+
+**在開市期間發布的新聞才會觸發交易**
+
+
+### 模型超參數設置
+
+### Baseline Models
+
+
+### 1-day trading result
+![](https://i.imgur.com/RJpMXsO.png)
+
+### 2-day trading result
+![](https://i.imgur.com/VcrkJfm.png)
+
+### 3-day trading result
+![](https://i.imgur.com/JGWexy2.png)
+
+### 事件種類的勝率
+![](https://i.imgur.com/CzkRp7s.png)
+
+### 真實世界能獲得的收益
+使用新聞發布該分鐘的收盤價交易，和假設能夠以開盤價交易，兩者的差異
+
+- 發現若能越即時進行交易，才能保證有更大的利潤
+- 以及在實驗情境，沒有限制交易量，但真實世界的交易量會受到當時的流動性影響
+
+![](https://i.imgur.com/4sHd577.png)
+
+老師上課時間有限，那課綱裡面沒講到的部分講義會提供嗎?  想說應該是已經準備好了的
