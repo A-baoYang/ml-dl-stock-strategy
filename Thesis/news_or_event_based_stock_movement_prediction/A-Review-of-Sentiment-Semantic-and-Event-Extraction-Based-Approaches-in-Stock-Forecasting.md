@@ -68,3 +68,10 @@ Stock2Vec: adapt the Word2Vec algorithm in sector embedding[39]
 Stock2Vec + GRU + Sentiment
 
 ## Event-extraction-based
+
+- EAN
+- HAN
+
+## Hybrid approaches
+
+
