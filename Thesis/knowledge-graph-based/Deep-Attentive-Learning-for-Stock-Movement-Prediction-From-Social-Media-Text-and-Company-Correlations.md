@@ -27,7 +27,7 @@
 > - $P_{d-T}$ : 第 $d-T$ 日的 price vector ($R^{d_{p}}$, $d_{p}$ 是向量維度)
 > - $h_{T}$ : GRU 的 hidden states vector ($R^{d_{p} \times T}$)
 > - $\beta_{T}$ : temporal attention 也就是該日的權重
-> - $q_{t}$ : 把這 $T$ 日的價格資訊經過 GRU 做加權聚合後的向量 $R_{v}$，$q_{t} = ζ (\hat{h}_p )$
+> - $q_{t}$ : 把這 $T$ 日的價格資訊經過 GRU 做加權聚合後的向量
 
 - Encode historical stock price movements to produce price feature ($q_t$)
 - use **GRU** to capture sequential dependencies across trading days
@@ -40,9 +40,33 @@
 
 ### (2) Social Media Information Encoder
 
+![](https://i.imgur.com/P1sVcow.png)
+
+> Equation Marks
+> - $m$ : Tweets embedding vector
+> - $h_{ik}$ : $k_{th}$ Hidden states of day-wise tweets embeddings in day $i$
+> - $\gamma_{k}$ : Intra-day level attention of each tweet in the same day
+> - $h_{T}$ : Hidden states of aggreated tweets embeddings of day $T$
+> - $\beta_{T}$ : Temporal attention weight of day $T$
+> - $C_{t}$ : 把這 $T$ 日的推文資訊經過 GRU 做加權聚合後的向量
+
 Tweet Embeddings
 
 Learning Representations for intra-day
 
 Learning Representations across days
 
+### (3) Blending Multimodal Information
+
+> $x_{t} = B(c_{t}, q_{t},) = ReLU(q_{t}^{T} W c_{t} + b)$
+> - $q_{t}$ : 把這 $T$ 日的價格資訊經過 GRU 做加權聚合後的向量 ($R^{v}$)
+> - $c_{t}$ : 把這 $T$ 日的推文資訊經過 GRU 做加權聚合後的向量 ($R^{u}$)
+> - $W$ : 權重矩陣 ($R^{w \times v \times u}$)
+> - $b$ : bias ($R^{w}$)
+> - $x_{t}$ : 經過 BiLinear transformed 的向量 ($R^{w}$)
+
+### (4) Graph Attention Network
+
+- Input: a set of stock (node) features
+  - $h = [x_1, x_2, ..., x_{|S|}]$, $x_i$ 為經過 BiLinear transformed 的向量
+  - 
